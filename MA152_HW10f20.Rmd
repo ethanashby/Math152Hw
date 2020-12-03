@@ -1,0 +1,49 @@
+---
+title: "Math 152 - Statistical Theory - Homework 10"
+author: "Ethan Ashby"
+date: "Due: Friday, October 23, 2020, midnight PDT"
+output: pdf_document
+---
+
+#### 8: R - kissing the right way
+
+   a. Using the binomial distribution (not the CLT), find the rejection region for this test given a level of significance of 0.05.  You can use trial and error or the inverse function for the binomial to come up with your test.
+
+Since the researcher thinks the truth is probably less, we only do a 1-tailed test (left tailed). To find the rejection region, we find the 5% quantile of the null distribution of size=124 with p=0.75. This quantile is 85. S our rejection region is if the number of couples kissing to the right is $X<85$.
+
+```{r}
+# for X ~ Bin(size, prob)
+size=124
+prob=.75
+p=.05
+#5.0 quantile
+qbinom(p, size=size, prob=prob)
+```
+
+   b. What is the size of your test?
+   
+```{r}
+#size is the probability of rejecting the null at X<85 or X \leq 84.
+pbinom(84, size=size, prob=prob)
+```
+
+The size of my test is approximately 0.042.
+
+   c. Calculate and plot the power function over all possible values of $\theta$.  Do you think your test seems particularly powerful? Explain.  (Note:  you'll need to change the code below to say `eval = TRUE` and also actually write out the power function.)
+
+```{r eval=TRUE}
+all.theta <-  seq(0,1,.001)
+#this is the power function
+all.power <- pbinom(qbinom(all.theta, size=size, prob=prob), size=size, prob=prob)
+par(pty="s")
+plot(all.theta, all.power, xlab="possible theta values", ylab="power function", ylim=c(0,1), xlim=c(0,1))
+```
+I generated the power function by identifying the quantiles associated with each of the thetas under the null hypothesis that theta=0.75. Using these cutoffs, I calculated the probability of rejecting the null under these quantiles. I don't think the test is all that powerful, as pretty sizeable deviations in theta often don't result in any increases in power. Additionally, the power function looks approximately linear, which doesn't conform to the curvature that we would like in our power function (low values up until 0.75 and high values above that).
+
+   d. Given the data (80 couples kissed right), what is the p-value of the test?
+
+```{r}
+pbinom(80, size=size, prob=prob)
+```
+
+The p-value of the test for 80 couples kissing is 0.006.

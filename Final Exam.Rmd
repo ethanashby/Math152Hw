@@ -1,0 +1,113 @@
+---
+title: "Math 152 - Statistical Theory - Final"
+author: "Ethan Ashby"
+date: "Due: Friday, Dec 4, 2020, 5pm PST"
+output: pdf_document
+---
+
+```{r warning=FALSE, comment=FALSE, message=FALSE, echo = FALSE}
+knitr::opts_chunk$set(message=FALSE, warning=FALSE, fig.height=3, fig.width=5, 
+                      fig.align = "center")
+library(mosaic)
+library(tidyverse)
+```
+
+#### 5.  Jeans(genes) and Boots(traps)
+
+If gene frequencies are in equilibrium, the genotypes occur with these probabilities: $p(AA)=(1-\theta)^2, \ p(Aa) = 2\theta(1-\theta), \ p(aa)=\theta^2$. Plato et al. (1964) published the following data on haptoglobin type for a sample of 190 people: Hp1-1: 10 (i.e., "aa"); Hp1-2: 68 (i.e., "Aa"); Hp2-2: 112 (i.e., "AA"). 
+
+The data can be considered to come from a multinomial distribution ($n$ is the sum representing the total number of observed values).  Feel free to use the multinomial wikipedia page: https://en.wikipedia.org/wiki/Multinomial_distribution.
+
+$$f(\underline{x} | p_1, p_2, p_3) = \frac{n!}{x_1! x_2! x_3!} p_1^{x_1} p_2^{x_2} p_3^{x_3}$$
+
+Hint:  for this entire problem, use the pdf above as the "joint" pdf.  Do not try to work with a marginal pdf.  Do not multiply the information by $n$.  Similar to the Binomial, the joint distribution of the entire dataset is just the pdf itself. 
+
+
+ a. (+5 pts) Find the MLE of $\theta$. 
+ b. (+5 pts) Find the asymptotic variance of the MLE.  Why can't you use the properties of variance (e.g., Thm 4.3.2 - 4.3.5 or Thm 4.6.6) to directly calculate $Var(\hat{\theta})$?
+ c. (+5 pts) Using the asymptotic distribution of the MLE, find a 99% confidence interval for $\theta$.  Interpret the interval. 
+ d. (+5 pts) Use the bootstrap to find the approximate standard error of the MLE and compare to the result in b. 
+ 
+```{r}
+set.seed(4747)
+#Function to compute maximum likelihood estimator
+MLE=function(AA,Aa,aa){(2*Aa+4*aa)/(4*(AA+Aa+aa))}
+#our dataset
+data<-c(rep("AA", 112), rep("Aa", 68), rep("aa", 10))
+#vector to store MLEs
+bs_mle_vec<-vector(length=1000)
+
+#for loop to calculate BS samples and statistics
+for (i in 1:1000){
+  #BS sample the data
+  bs_samp<-sample(data, 190, replace=TRUE)
+  #count the genotype frequencies
+  occur<-bs_samp %>% table()
+  #add MLE to your vector of MLEs
+  bs_mle_vec[i]<-MLE(AA=occur[3], Aa=occur[2], aa=occur[1])
+}
+
+#approx SE of MLE is computed by taking standard deviation of vector of BS MLEs
+sd(bs_mle_vec)
+
+#asymptotic variance
+asymp_var<-(MLE(112, 68, 10)^2+MLE(112, 68, 10))/(2*190*(4*MLE(112, 68, 10)+1))
+#need to compare apples to apples: takes sqrt of asymptotic variance to get asymptotic SE
+sqrt(asymp_var)
+```
+ 
+Using the bootstrap, the approximate bootstrap standard error of the MLE is `r round(sd(bs_mle_vec),3)`, which is remarkably close to the analytical (asymptotic) estimate of the variance `r round(sqrt(asymp_var), 3)`.
+ 
+ e. (+5 pts) Use the bootstrap SE to find the approximate 99% confidence interval (using normal quantiles is fine) and compare the interval to the one found in part c.  Interpret the interval.  
+
+```{r}
+#99% normal BS CI
+CI=c(MLE(112, 68, 10)+qnorm(0.005)*sd(bs_mle_vec), MLE(112, 68, 10)+qnorm(0.995)*sd(bs_mle_vec))
+round(CI, 3)
+```
+The 99% normal BS confidence interval is `r round(CI, 3)` which is quite similar to the interval I calculated analytically. This indicates that according to our data and with 99% confidence, $\theta$ (the parameter governing haplotype frequencies in equilibrium) lies in the interval `r round(CI, 3)`.
+
+#### 6. Traveling for the holidays
+
+Assume that the time between arrivals (known as "inter-arrival times") follow a Gamma distribution.   Let $X_i$ = time between arrivals at the TSA Pre-Check line at LAX Airport.  If we assume each passenger's arrival time is independent of every other passenger, $X_1, \ldots, X_n$ come from a Gamma distribution with $\alpha = 5$ and unknown parameter $\beta$.  Note that if $H_0$ is true, the expected time between arrivals = $E(X) = \alpha / \beta =$ 2.5 minutes (or less).   Actual data is collected and $\sum_{i=1}^5 x_i = 14.8$.
+
+$H_0: \beta \geq 2$ vs. $H_1: \beta < 2$
+
+  a. (+5 pts) Find the format of the Uniformly Most Powerful test.  (That is, find a test statistic and a direction for which you'd reject $H_0$.  You will calculate the constant in the next step.)
+  b. (+5 pts) Find $c$ such that the level of the test is 0.05 for a sample of $n=5$.  (The solution is not an asymptotic result.)
+  c. (+5 pts) Given your test in part b., what does it mean that your test is uniformly most powerful?
+  d. (+5 pts) Calculate the power of this test when $\beta = 1.5$.
+  e. (+5 pts) Find the p-value based on the observed data, and use that to make a conclusion about $H_0$ *in the context of the problem*. 
+  f. (+5 pts) Bayesian setup:  Consider the prior on $\beta$ to be Gamma(2,4), $E[\beta] = 2/4$.  What is the posterior probability that the null is true?  
+
+
+#### 7. Learning
+
+Jane, a student at Pomona, has developed a cool new prediction method that she calls *DeepLearner*. Her method uses characteristics of the individual as well as sensor data from the individual's phone over 7 days to predict whether the individual's mood on the 8th day will be low or high. She uses a large dataset to estimate all of the parameters in her prediction method. Jane wants to estimate the misclassification rate, that is, the fraction of people on which *DeepLearner* will predict the wrong mood.
+
+  a. (+5 pts) Jane obtains a new test dataset of n = 100 individuals. Let X be the number of times out of n that *DeepLearner* incorrectly labels the 8th day mood out of these 100 individuals. It turns out that X = 5 for this dataset. Jane is thrilled. But Jane's mentor is quite skeptical. The usual misclassification rate for mood predictions is at least 10%. Jane's mentor asks Jane the following question:   
+  
+> "If *DeepLearner* has a 10% misclassification rate, then what is the chance that the misclassification rate will be at least as low on a second set of 100 individuals as it was on the first set of individuals?"  
+
+> Explain how Jane's **mentor's question** can be interpreted in terms of a hypothesis testing problem. Provide the details of this hypothesis testing problem: null and alternative hypothesis, test statistic (note that there is only one RV so only one possible test.  you do *not* need to derive the test.  just use the test that makes sense to you.), and a calculation of the p-value.  
+
+   b. (+5 pts) Jack, a student at Occidental, has developed an alternate prediction method, which Jane calls *ShallowLearner*. Jane **hopes to show** that *DeepLearner* is better than *ShallowLearner*, in terms of lower misclassification rates. So she obtains a second (independent) dataset of 100 individuals and calculates Y , the number of times out of 100 that *ShallowLearner* incorrectly labels the 8th day mood. What are Jane's null and alternative hypotheses? Let $T = \frac{X}{n} - \frac{Y}{n}$, using large sample approximations (e.g., assume that n = 100 is sufficiently large so that asymptotic approximations will be pretty accurate), provide the test (including cutoff) which would have a Type I error rate $\alpha_0 = 0.01$.  
+   Note: feel free to use the appropriate MLEs in the calculation of the variance.  Do not calculate Fisher Information. This problem is based on a ubiquitous asymptotic result which you probably learned in Math 151 or earlier.  
+   
+```{r}
+#validate setup experimentally
+set.seed(11)
+vec<-c()
+for (i in 1:10000){
+DL<-rbinom(1, size=100, prob=0.1)
+SL<-rbinom(1, size=100, prob=0.1)
+mcDL=DL/100
+mcSL=SL/100
+
+vec<-c(vec, (DL-SL)/100 < qnorm(0.01) * sqrt(mcDL*(1-mcDL) + mcSL*(1-mcSL))/10)
+}
+
+sum(vec)/10000
+```
+
+The T1 error rate in this example is `r sum(vec)/10000`, which is approximately at the level I wanted to control it at ($\alpha_0=0.01$).
